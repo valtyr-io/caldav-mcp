@@ -8,8 +8,14 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json tsconfig.build.json ./
 COPY src ./src
+COPY tests ./tests
 
 RUN pnpm install --frozen-lockfile
+# Gate the image on the typecheck and unit tests. container-metadata reads repo
+# files outside the build context, so it only runs in CI.
+RUN pnpm typecheck \
+    && pnpm exec vitest run tests/unit \
+       --exclude tests/unit/container-metadata.test.ts
 RUN pnpm build
 RUN pnpm prune --prod
 
