@@ -84,6 +84,7 @@ application database, and raw iCalendar is returned only when explicitly request
 - Lists events in semi-open time ranges and expands recurring occurrences.
 - Creates timed, all-day, and recurring events.
 - Supports zero, one, or multiple display alarms per event.
+- Reads and writes Apple Calendar travel time (`X-APPLE-TRAVEL-DURATION`).
 - Emits the Apple alarm extensions expected by iCloud Calendar.
 - Reads events by opaque resource ID or by calendar ID and UID.
 - Applies partial updates while preserving omitted and unknown iCalendar data.
@@ -183,10 +184,34 @@ Recurring events accept an RFC 5545 rule without the `RRULE:` prefix:
 }
 ```
 
+Timed event with 30 minutes of Apple Calendar travel time:
+
+```json
+{
+  "calendar_id": "opaque-calendar-id",
+  "summary": "Dentist",
+  "start": {
+    "date_time": "2026-10-05T10:00:00+02:00",
+    "timezone": "Europe/Amsterdam"
+  },
+  "end": {
+    "date_time": "2026-10-05T10:30:00+02:00",
+    "timezone": "Europe/Amsterdam"
+  },
+  "travel_minutes": 30
+}
+```
+
+`travel_minutes` accepts whole minutes from 1 to 1,440 and is only valid for timed
+events. It is stored as `X-APPLE-TRAVEL-DURATION`, which Apple Calendar shows as
+travel time before the event. Events returned by the read tools include
+`travel_minutes`, or `null` when none is set.
+
 ### `update_event`
 
 Patches an event or complete recurring series. Omitted fields are preserved, `null`
-removes a nullable field, and `alarms: []` removes all alarms. An optional
+removes a nullable field, and `alarms: []` removes all alarms. `travel_minutes: null`
+removes travel time, including Apple's automatic travel-time metadata. An optional
 `expected_etag` prevents overwriting a newer server version.
 
 ### `delete_event`

@@ -13,6 +13,11 @@ import {
 } from "../schemas/index.js";
 import type { ProviderPolicy } from "../providers/index.js";
 import { addAlarms, readAlarms } from "./alarms.js";
+import {
+  isAllDayEvent,
+  readTravelMinutes,
+  setTravelMinutes,
+} from "./travel.js";
 
 const productId = "-//caldav-mcp//CalDAV MCP Server//EN";
 
@@ -589,6 +594,9 @@ export const createCalendarEvent = ({
   if (input.location !== null) {
     event.addPropertyWithValue("location", input.location);
   }
+  if (input.travel_minutes !== null) {
+    setTravelMinutes(event, input.travel_minutes);
+  }
   if (input.rrule !== null) {
     addRecurrenceRule(event, input.rrule);
   }
@@ -625,6 +633,7 @@ export const normalizeEventComponent = (
     location: componentString(master, "location"),
     rrule: componentString(master, "rrule"),
     alarms: readAlarms(master),
+    travelMinutes: readTravelMinutes(master),
     recurring: event.isRecurring(),
     recurrenceException: event.isRecurrenceException(),
     recurrenceId: componentString(master, "recurrence-id"),
@@ -698,6 +707,15 @@ export const patchCalendarEvent = ({
     if (patch.rrule !== null) {
       addRecurrenceRule(event, patch.rrule);
     }
+  }
+  if (patch.travel_minutes !== undefined) {
+    if (patch.travel_minutes !== null && isAllDayEvent(event)) {
+      throw createAppError({
+        code: "VALIDATION_FAILED",
+        message: "Travel time is only supported for timed events",
+      });
+    }
+    setTravelMinutes(event, patch.travel_minutes);
   }
   if (patch.alarms !== undefined) {
     event.removeAllSubcomponents("valarm");
